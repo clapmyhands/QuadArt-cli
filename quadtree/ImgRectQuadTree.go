@@ -3,54 +3,32 @@ package quadtree
 import (
 	"container/heap"
 	"image"
+	"quadart-cli/util"
 )
 
-type ImgRectQuadTree struct {
-	img         *image.RGBA
-	imgRectList []ImgRect
+type ImgQuadTree struct {
+	img     *image.RGBA
+	maxHeap *util.MaxHeap
 }
 
-func NewImgRectQuadTree(img *image.RGBA) *ImgRectQuadTree {
-	imgRectQuadTree := &ImgRectQuadTree{
-		img:         img,
-		imgRectList: make([]ImgRect, 0),
+func NewImgQuadTree(img *image.RGBA) *ImgQuadTree {
+	imgRectQuadTree := &ImgQuadTree{
+		img:     img,
+		maxHeap: &util.MaxHeap{},
 	}
-	heap.Init(imgRectQuadTree)
-	heap.Push(imgRectQuadTree, extractImageRect(img, img.Bounds()))
+	heap.Init(imgRectQuadTree.maxHeap)
+	heap.Push(imgRectQuadTree.maxHeap, extractImageRect(img, img.Bounds()))
 	return imgRectQuadTree
 }
 
-func (h ImgRectQuadTree) Len() int { return len(h.imgRectList) }
-
-// Less - max heap for AvgError
-func (h ImgRectQuadTree) Less(i, j int) bool {
-	return h.imgRectList[i].AvgError > h.imgRectList[j].AvgError
-}
-
-func (h ImgRectQuadTree) Swap(i, j int) {
-	h.imgRectList[i], h.imgRectList[j] = h.imgRectList[j], h.imgRectList[i]
-}
-
-func (h *ImgRectQuadTree) Push(x interface{}) {
-	(*h).imgRectList = append((*h).imgRectList, x.(ImgRect))
-}
-
-func (h *ImgRectQuadTree) Pop() interface{} {
-	old := (*h).imgRectList
-	n := len(old)
-	x := old[n-1]
-	(*h).imgRectList = old[0 : n-1]
-	return x
-}
-
 // ExtractAndPush - QoL method to push new record
-func (h *ImgRectQuadTree) ExtractAndPush(rect image.Rectangle) ImgRect {
+func (h *ImgQuadTree) ExtractAndPush(rect image.Rectangle) ImgRect {
 	ire := extractImageRect(h.img, rect)
-	heap.Push(h, ire)
+	heap.Push(h.maxHeap, ire)
 	return ire
 }
 
 // PopImgRect - QoL method to pop new record
-func (h *ImgRectQuadTree) PopImgRect() ImgRect {
-	return heap.Pop(h).(ImgRect)
+func (h *ImgQuadTree) PopImgRect() ImgRect {
+	return heap.Pop(h.maxHeap).(ImgRect)
 }

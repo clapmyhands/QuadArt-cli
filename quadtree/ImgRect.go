@@ -3,32 +3,34 @@ package quadtree
 import (
 	"image"
 	"image/color"
-	"image/draw"
+	"quadart-cli/util"
 )
 
 type ImgRect struct {
-	// Rect denotes the bounding box of the image
-	Rect image.Rectangle
-	// AvgColor denotes the average color for an image
-	AvgColor color.RGBA64
-	// AvgError denotes MSE of image to its color average
-	AvgError float64
+	// rect denotes the bounding box of the image
+	rect image.Rectangle
+	// avgColor denotes the average color for an image
+	avgColor color.RGBA64
+	// avgError denotes MSE of image to its color average
+	avgError float64
+}
+
+func (i ImgRect) Less(other util.HeapItem) bool {
+	return i.avgError < other.(ImgRect).avgError
+}
+
+func (i ImgRect) More(other util.HeapItem) bool {
+	return i.avgError > other.(ImgRect).avgError
 }
 
 func extractImageRect(img *image.RGBA, rect image.Rectangle) ImgRect {
-	trimmedImg := moveTopLeft(img.SubImage(rect), rect)
-	avgColor := calcAvgColor(trimmedImg)
-	mse := calcImgToColorMSE(trimmedImg, avgColor)
+	trimmedImg := util.ExtractRectSubImg(img, rect)
+	avgColor := util.CalcAvgColor(trimmedImg)
+	mse := util.CalcImgToColorMSE(trimmedImg, avgColor)
 
 	return ImgRect{
-		Rect:     rect,
-		AvgColor: avgColor,
-		AvgError: mse,
+		rect:     rect,
+		avgColor: avgColor,
+		avgError: mse,
 	}
-}
-
-func moveTopLeft(img image.Image, rect image.Rectangle) *image.RGBA {
-	newImg := image.NewRGBA(rect.Sub(rect.Min))
-	draw.Draw(newImg, newImg.Rect, img, rect.Min, draw.Src)
-	return newImg
 }
