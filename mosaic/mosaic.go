@@ -7,7 +7,6 @@ import (
 	"image/color"
 	"image/draw"
 	"log"
-	"math"
 	"os"
 	"quadart-cli/util"
 
@@ -24,17 +23,21 @@ var colorWhite = color.RGBA64{
 }
 
 type RunParameter struct {
-	inputFilepath string
-	outputFolder  string
-	errThreshold  float64
-	radius        int
+	inputFilepath       string
+	outputFolder        string
+	finalOutputFilename string
+	shape               string
+	errThreshold        float64
+	radius              int
 }
 
 func parseArgs() *RunParameter {
 	param := &RunParameter{}
 
 	flag.StringVarP(&param.inputFilepath, "input", "i", "", "Input Filepath")
-	flag.StringVarP(&param.outputFolder, "output", "o", "out/mosaic", "Output Folder")
+	flag.StringVarP(&param.outputFolder, "outputFolder", "o", "out/mosaic", "Output Folder")
+	flag.StringVarP(&param.finalOutputFilename, "finalOutputFilename", "f", "final", "Final Output Filename")
+	flag.StringVarP(&param.shape, "shape", "s", "hexagon", "Shape for tiling")
 	flag.Float64VarP(&param.errThreshold, "threshold", "t", 1_000, "Error Threshold before stopping")
 	flag.IntVarP(&param.radius, "radius", "r", 10, "Radius for calculating length of edges and error finding")
 	flag.Parse()
@@ -63,15 +66,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var hexHeight = float64(runParam.radius) * math.Sqrt(3)
-
 	// setup new virtual img and drawing context
 	copyImg := image.NewRGBA(originalImg.Bounds())
 	draw.Draw(copyImg, originalImg.Bounds(), originalImg, originalImg.Bounds().Min, draw.Src)
 
 	w := originalImg.Bounds().Dx()
 	h := originalImg.Bounds().Dy()
-
 	dc := gg.NewContext(w, h)
 
 	// set background
@@ -79,53 +79,43 @@ func main() {
 	dc.SetColor(color.White)
 	dc.Fill()
 
-	// prepare hexagons
-	HexagonHeap := make(util.MaxHeap, 0)
-	var y, x int
-	px, py := 0.0, 0.0
-	for y = 0; float64(y)*hexHeight < float64(h+runParam.radius); y++ {
-		for x = 0; float64(x)*1.5*float64(runParam.radius) < float64(w+runParam.radius); x++ {
-			if x%2 == 1 {
-				py = float64(y)*hexHeight + (hexHeight / 2)
-			} else {
-				py = float64(y) * hexHeight
-			}
-			px = float64(x) * 1.5 * float64(runParam.radius)
-
-			subImg := util.ExtractRectSubImg(
-				copyImg,
-				util.CalcRectangle(image.Pt(int(px), int(py)), float64(runParam.radius)),
-			)
-			if subImg.Rect.Empty() {
-				// extracted rectangle is outside original image
-				continue
-			}
-			avgColor := util.CalcAvgColor(subImg)
-
-			HexagonHeap = append(HexagonHeap, Hexagon{
-				x:        px,
-				y:        py,
-				color:    avgColor,
-				radius:   runParam.radius,
-				avgError: util.CalcImgToColorMSE(subImg, colorWhite),
-			})
-		}
+	switch runParam.shape {
+	case "hexagon":
+		tiles := TileWithHexagon(copyImg, runParam.radius)
+		HeapTiling(dc, util.ToHeap(tiles), runParam.errThreshold)
+	case "triangle":
+		tiles := TileWithTriangle(copyImg, runParam.radius)
+		ExhaustiveTiling(dc, ToShapes(tiles))
+	default:
+		log.Fatalf("Unsupported shape: %s", runParam.shape)
 	}
-	heap.Init(&HexagonHeap)
+	dc.SavePNG(fmt.Sprintf("%s/%s.png", runParam.outputFolder, runParam.finalOutputFilename))
+}
 
-	log.Printf("x: %d, y: %d, heapLen: %d", x, y, len(HexagonHeap))
-
+func HeapTiling(dc *gg.Context, shapeHeap util.MaxHeap, errThreshold float64) {
+	var x, y = dc.Width(), dc.Height()
+	heap.Init(&shapeHeap)
+	log.Printf("x: %d, y: %d, heapLen: %d", x, y, len(shapeHeap))
 	// draw
-	for i := 0; len(HexagonHeap) > 0; i++ {
-		hex := heap.Pop(&HexagonHeap).(Hexagon)
+	for i := 0; len(shapeHeap) > 0; i++ {
+		hex := heap.Pop(&shapeHeap).(Hexagon)
 		if i%10 == 0 {
-			log.Printf("loop: %d,\tx: %f,\ty: %f,\terr: %f,\tcolor: %v,\t len:%d", i, hex.x, hex.y, hex.avgError, hex.color, len(HexagonHeap))
+			log.Printf("loop: %d,\tx: %f,\ty: %f,\terr: %f,\tcolor: %v,\t len:%d", i, hex.x, hex.y, hex.avgError, hex.color, len(shapeHeap))
 		}
 
-		if hex.avgError < runParam.errThreshold {
+		if hex.avgError < errThreshold {
 			break
 		}
 		hex.Draw(dc)
 	}
-	dc.SavePNG(fmt.Sprintf("%s/final.png", runParam.outputFolder))
+}
+
+func ExhaustiveTiling(dc *gg.Context, shapes []Shape) {
+	var x, y = dc.Width(), dc.Height()
+	log.Printf("x: %d, y: %d, len: %d", x, y, len(shapes))
+	// draw
+	for _, shape := range shapes {
+		log.Printf("%+v", shape)
+		shape.Draw(dc)
+	}
 }

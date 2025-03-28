@@ -30,3 +30,11 @@ func (h *MaxHeap) Pop() any {
 	*h = old[0 : n-1]
 	return item
 }
+
+func ToHeap[T HeapItem](items []T) MaxHeap {
+	result := make(MaxHeap, len(items))
+	for i, item := range items {
+		result[i] = item
+	}
+	return result
+}
