@@ -18,7 +18,7 @@ import (
 type Triangle struct {
 	x, y       float64
 	color      color.Color
-	radius     int
+	radius     float64
 	pointingUp bool
 	avgError   float64
 }
@@ -36,25 +36,26 @@ func (h Triangle) Draw(dc *gg.Context) {
 	if h.pointingUp {
 		rotation = 0.0
 	}
-	dc.DrawRegularPolygon(3, h.x, h.y, float64(h.radius), rotation)
+	dc.DrawRegularPolygon(3, h.x, h.y, h.radius, rotation)
 	// r, g, b, a := h.color.RGBA()
 	// dc.SetColor(color.RGBA64{R: uint16(r), G: uint16(g), B: uint16(b), A: uint16(a)})
 	dc.SetColor(h.color)
+	dc.SetLineWidth(0.5)
 	dc.StrokePreserve()
 	// dc.SetColor(h.color)
 	dc.Fill()
 }
 
-func TileWithTriangle(img *image.RGBA, radius int) []Triangle {
+func TileWithTriangle(img *image.RGBA, radius float64) []Triangle {
 	avgImgColor := util.CalcAvgColor(img)
-	var triangleH = float64(radius) * 1.5
-	var triangleW = float64(radius) * math.Sqrt(3)
+	var triangleH = radius * 1.5
+	var triangleW = radius * math.Sqrt(3)
 	// prepare hexagons
 	tiles := make([]Triangle, 0)
 	var y, x int
 	px, py := 0.0, 0.0
-	for y = 0; float64(y)*triangleH < float64(img.Bounds().Dy()+radius); y++ {
-		for x = 0; float64(x)*triangleW/2.0 < float64(img.Bounds().Dx()+radius); x++ {
+	for y = 0; float64(y)*triangleH < float64(img.Bounds().Dy())+radius; y++ {
+		for x = 0; float64(x)*triangleW/2.0 < float64(img.Bounds().Dx())+radius; x++ {
 			pointingUp := x%2 == 0
 			if y%2 == 1 {
 				pointingUp = !pointingUp
@@ -68,7 +69,7 @@ func TileWithTriangle(img *image.RGBA, radius int) []Triangle {
 
 			subImg := util.ExtractRectSubImg(
 				img,
-				util.CalcRectangle(image.Pt(int(px), int(py)), float64(radius)),
+				util.CalcRectangle(image.Pt(int(px), int(py)), radius),
 			)
 			if subImg.Rect.Empty() {
 				// extracted rectangle is outside original image

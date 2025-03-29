@@ -28,7 +28,11 @@ type RunParameter struct {
 	finalOutputFilename string
 	shape               string
 	errThreshold        float64
-	radius              int
+	radius              float64
+	width               float64
+	height              float64
+	alpha               float64
+	spaceMultiplier     float64
 }
 
 func parseArgs() *RunParameter {
@@ -39,7 +43,11 @@ func parseArgs() *RunParameter {
 	flag.StringVarP(&param.finalOutputFilename, "finalOutputFilename", "f", "final", "Final Output Filename")
 	flag.StringVarP(&param.shape, "shape", "s", "hexagon", "Shape for tiling")
 	flag.Float64VarP(&param.errThreshold, "threshold", "t", 1_000, "Error Threshold before stopping")
-	flag.IntVarP(&param.radius, "radius", "r", 10, "Radius for calculating length of edges and error finding")
+	flag.Float64VarP(&param.radius, "radius", "r", 10, "Radius for calculating length of edges and error finding")
+	flag.Float64VarP(&param.width, "width", "w", 10, "Width of shape")
+	flag.Float64VarP(&param.height, "height", "h", 10, "Height of shape")
+	flag.Float64VarP(&param.alpha, "alpha", "a", 0.6, "Alpha channel 0-1")
+	flag.Float64Var(&param.spaceMultiplier, "spaceMultiplier", 1.05, "Space multiplier for overlapping shapes")
 	flag.Parse()
 
 	if len(param.inputFilepath) == 0 {
@@ -85,6 +93,15 @@ func main() {
 		HeapTiling(dc, util.ToHeap(tiles), runParam.errThreshold)
 	case "triangle":
 		tiles := TileWithTriangle(copyImg, runParam.radius)
+		ExhaustiveTiling(dc, ToShapes(tiles))
+	case "square":
+		tiles := TileWithSquare(copyImg, runParam.width, runParam.height)
+		ExhaustiveTiling(dc, ToShapes(tiles))
+	case "diamond":
+		tiles := TileWithDiamond(copyImg, runParam.width, runParam.height)
+		ExhaustiveTiling(dc, ToShapes(tiles))
+	case "oCircle":
+		tiles := TileWithOverlappingCircle(copyImg, runParam.radius, runParam.alpha, runParam.spaceMultiplier)
 		ExhaustiveTiling(dc, ToShapes(tiles))
 	default:
 		log.Fatalf("Unsupported shape: %s", runParam.shape)
