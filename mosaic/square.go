@@ -44,8 +44,8 @@ func TileWithSquare(img *image.RGBA, width, height float64) []Square {
 	tiles := make([]Square, 0)
 	var y, x int
 	px, py := 0.0, 0.0
-	for y = 0; float64(y)*width <= float64(img.Bounds().Dy()); y++ {
-		for x = 0; float64(x)*height <= float64(img.Bounds().Dx()); x++ {
+	for y = 0; float64(y)*height <= float64(img.Bounds().Dy()); y++ {
+		for x = 0; float64(x)*width <= float64(img.Bounds().Dx()); x++ {
 			py = float64(y) * height
 			px = float64(x) * width
 

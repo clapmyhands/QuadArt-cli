@@ -4,7 +4,6 @@ import (
 	"container/heap"
 	"fmt"
 	"image"
-	"image/color"
 	"image/draw"
 	"log"
 	"os"
@@ -15,17 +14,11 @@ import (
 	"github.com/fogleman/gg"
 )
 
-var colorWhite = color.RGBA64{
-	R: 0xffff,
-	G: 0xffff,
-	B: 0xffff,
-	A: 0xffff,
-}
-
 type RunParameter struct {
 	inputFilepath       string
 	outputFolder        string
 	finalOutputFilename string
+	backgroundColor     string
 	shape               string
 	errThreshold        float64
 	radius              float64
@@ -33,6 +26,7 @@ type RunParameter struct {
 	height              float64
 	alpha               float64
 	spaceMultiplier     float64
+	shiftRatio          float64
 }
 
 func parseArgs() *RunParameter {
@@ -41,6 +35,7 @@ func parseArgs() *RunParameter {
 	flag.StringVarP(&param.inputFilepath, "input", "i", "", "Input Filepath")
 	flag.StringVarP(&param.outputFolder, "outputFolder", "o", "out/mosaic", "Output Folder")
 	flag.StringVarP(&param.finalOutputFilename, "finalOutputFilename", "f", "final", "Final Output Filename")
+	flag.StringVarP(&param.backgroundColor, "backgroundColor", "b", "ffffff", "Background Color in Hex")
 	flag.StringVarP(&param.shape, "shape", "s", "hexagon", "Shape for tiling")
 	flag.Float64VarP(&param.errThreshold, "threshold", "t", 1_000, "Error Threshold before stopping")
 	flag.Float64VarP(&param.radius, "radius", "r", 10, "Radius for calculating length of edges and error finding")
@@ -48,6 +43,7 @@ func parseArgs() *RunParameter {
 	flag.Float64VarP(&param.height, "height", "h", 10, "Height of shape")
 	flag.Float64VarP(&param.alpha, "alpha", "a", 0.6, "Alpha channel 0-1")
 	flag.Float64Var(&param.spaceMultiplier, "spaceMultiplier", 1.05, "Space multiplier for overlapping shapes")
+	flag.Float64Var(&param.shiftRatio, "shiftRatio", 0.5, "Shift Ratio for Grills")
 	flag.Parse()
 
 	if len(param.inputFilepath) == 0 {
@@ -84,7 +80,7 @@ func main() {
 
 	// set background
 	dc.DrawRectangle(0, 0, float64(originalImg.Bounds().Dx()), float64(originalImg.Bounds().Dy()))
-	dc.SetColor(color.White)
+	dc.SetHexColor(runParam.backgroundColor)
 	dc.Fill()
 
 	switch runParam.shape {
@@ -102,6 +98,9 @@ func main() {
 		ExhaustiveTiling(dc, ToShapes(tiles))
 	case "oCircle":
 		tiles := TileWithOverlappingCircle(copyImg, runParam.radius, runParam.alpha, runParam.spaceMultiplier)
+		ExhaustiveTiling(dc, ToShapes(tiles))
+	case "grill":
+		tiles := TileWithGrill(copyImg, runParam.width, runParam.height, runParam.shiftRatio)
 		ExhaustiveTiling(dc, ToShapes(tiles))
 	default:
 		log.Fatalf("Unsupported shape: %s", runParam.shape)
@@ -132,7 +131,7 @@ func ExhaustiveTiling(dc *gg.Context, shapes []Shape) {
 	log.Printf("x: %d, y: %d, len: %d", x, y, len(shapes))
 	// draw
 	for _, shape := range shapes {
-		log.Printf("%+v", shape)
+		// log.Printf("%+v", shape)
 		shape.Draw(dc)
 	}
 }

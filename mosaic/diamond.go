@@ -33,7 +33,7 @@ func (h Diamond) Draw(dc *gg.Context) {
 	// dc.SetRGBA(0, 0, 0, 0.4)
 	// dc.SetColor(h.color)
 	dc.SetColor(h.color)
-	dc.SetLineWidth(0.5)
+	dc.SetLineWidth(0.2)
 	dc.StrokePreserve()
 	dc.Fill()
 }
