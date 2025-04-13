@@ -18,7 +18,7 @@ type RunParameter struct {
 	inputFilepath       string
 	outputFolder        string
 	finalOutputFilename string
-	backgroundColor     string
+	color               string
 	shape               string
 	errThreshold        float64
 	radius              float64
@@ -35,7 +35,7 @@ func parseArgs() *RunParameter {
 	flag.StringVarP(&param.inputFilepath, "input", "i", "", "Input Filepath")
 	flag.StringVarP(&param.outputFolder, "outputFolder", "o", "out/mosaic", "Output Folder")
 	flag.StringVarP(&param.finalOutputFilename, "finalOutputFilename", "f", "final", "Final Output Filename")
-	flag.StringVarP(&param.backgroundColor, "backgroundColor", "b", "ffffff", "Background Color in Hex")
+	flag.StringVarP(&param.color, "color", "c", "ffffff", "Background Color in normal, negative color if negative shape")
 	flag.StringVarP(&param.shape, "shape", "s", "hexagon", "Shape for tiling")
 	flag.Float64VarP(&param.errThreshold, "threshold", "t", 1_000, "Error Threshold before stopping")
 	flag.Float64VarP(&param.radius, "radius", "r", 10, "Radius for calculating length of edges and error finding")
@@ -80,7 +80,7 @@ func main() {
 
 	// set background
 	dc.DrawRectangle(0, 0, float64(originalImg.Bounds().Dx()), float64(originalImg.Bounds().Dy()))
-	dc.SetHexColor(runParam.backgroundColor)
+	dc.SetHexColor(runParam.color)
 	dc.Fill()
 
 	switch runParam.shape {
@@ -101,6 +101,11 @@ func main() {
 		ExhaustiveTiling(dc, ToShapes(tiles))
 	case "grill":
 		tiles := TileWithGrill(copyImg, runParam.width, runParam.height, runParam.shiftRatio)
+		ExhaustiveTiling(dc, ToShapes(tiles))
+	case "negativeGrill":
+		dc = gg.NewContextForImage(originalImg)
+		negativeColor, _ := util.HexToColorWithAlpha(runParam.color)
+		tiles := TileWithNegativeGrill(copyImg, runParam.width, runParam.height, runParam.shiftRatio, negativeColor)
 		ExhaustiveTiling(dc, ToShapes(tiles))
 	default:
 		log.Fatalf("Unsupported shape: %s", runParam.shape)
