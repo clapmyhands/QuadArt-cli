@@ -1,4 +1,4 @@
-package quadtree
+package main
 
 import (
 	"container/heap"
@@ -12,13 +12,13 @@ type ImgQuadTree struct {
 }
 
 func NewImgQuadTree(img *image.RGBA) *ImgQuadTree {
-	imgRectQuadTree := &ImgQuadTree{
+	imgQuadTree := &ImgQuadTree{
 		img:     img,
 		maxHeap: &util.MaxHeap{},
 	}
-	heap.Init(imgRectQuadTree.maxHeap)
-	heap.Push(imgRectQuadTree.maxHeap, extractImageRect(img, img.Bounds()))
-	return imgRectQuadTree
+	heap.Init(imgQuadTree.maxHeap)
+	heap.Push(imgQuadTree.maxHeap, extractImageRect(img, img.Bounds()))
+	return imgQuadTree
 }
 
 // ExtractAndPush - QoL method to push new record

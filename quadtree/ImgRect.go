@@ -1,4 +1,4 @@
-package quadtree
+package main
 
 import (
 	"image"
@@ -7,30 +7,30 @@ import (
 )
 
 type ImgRect struct {
-	// rect denotes the bounding box of the image
-	rect image.Rectangle
-	// avgColor denotes the average color for an image
-	avgColor color.RGBA64
-	// avgError denotes MSE of image to its color average
-	avgError float64
+	// Rect denotes the bounding box of the image
+	Rect image.Rectangle
+	// AvgColor denotes the average color for an image
+	AvgColor color.RGBA64
+	// AvgError denotes MSE of image to its color average
+	AvgError float64
 }
 
 func (i ImgRect) Less(other util.HeapItem) bool {
-	return i.avgError < other.(ImgRect).avgError
+	return i.AvgError < other.(ImgRect).AvgError
 }
 
 func (i ImgRect) More(other util.HeapItem) bool {
-	return i.avgError > other.(ImgRect).avgError
+	return i.AvgError > other.(ImgRect).AvgError
 }
 
 func extractImageRect(img *image.RGBA, rect image.Rectangle) ImgRect {
 	trimmedImg := util.ExtractRectSubImg(img, rect)
-	avgColor := util.CalcAvgColor(trimmedImg)
-	mse := util.CalcImgToColorMSE(trimmedImg, avgColor)
+	AvgColor := util.CalcAvgColor(trimmedImg)
+	mse := util.CalcImgToColorMSE(trimmedImg, AvgColor)
 
 	return ImgRect{
-		rect:     rect,
-		avgColor: avgColor,
-		avgError: mse,
+		Rect:     rect,
+		AvgColor: AvgColor,
+		AvgError: mse,
 	}
 }
